@@ -1,5 +1,3 @@
-// pages/index.tsx
-
 "use client";
 
 import React, { useState } from 'react';
@@ -11,28 +9,45 @@ import { GeistMono } from 'geist/font/mono';
 
 const BeaconIDGenerator = () => {
   const [uuid, setUuid] = useState('');
+  const [uuidTrimmed, setUuidTrimmed] = useState('');
   const [eddystoneUID, setEddystoneUID] = useState('');
   const [namespaceID, setNamespaceID] = useState('');
+  const [instanceID, setInstanceID] = useState('');
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   const generateIDs = () => {
     const newUuid = crypto.randomUUID();
-    const newEddystoneUID = crypto.randomUUID().replace(/-/g, '').slice(0, 20).toUpperCase();
-    const newNamespaceID = crypto.randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase();
+    const newUuidTrimmed = newUuid.replace(/-/g, '');
+    
+    // Generate Namespace as 20 numbers (0-9)
+    const newNamespaceID = Array.from(
+      crypto.getRandomValues(new Uint32Array(20)), 
+      num => (num % 10).toString()
+    ).join('');
+    
+    // Generate Instance ID as 12 alphanumeric characters
+    const alphanumeric = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const newInstanceID = Array.from(
+      crypto.getRandomValues(new Uint32Array(12)), 
+      num => alphanumeric[num % alphanumeric.length]
+    ).join('');
+
+    const newEddystoneUID = newNamespaceID + newInstanceID;
 
     setUuid(newUuid);
-    setEddystoneUID(newEddystoneUID);
+    setUuidTrimmed(newUuidTrimmed);
     setNamespaceID(newNamespaceID);
+    setInstanceID(newInstanceID);
+    setEddystoneUID(newEddystoneUID);
   };
 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedText(text);
-      setTimeout(() => setCopiedText(null), 2000); // Hide notification after 2 seconds
+      setTimeout(() => setCopiedText(null), 2000);
     } catch (err) {
       console.error('Failed to copy!', err);
-      // Optionally, set an error state to display a notification
     }
   };
 
@@ -40,23 +55,19 @@ const BeaconIDGenerator = () => {
     <div
       className={`${GeistSans.className} ${GeistMono.className} grid grid-rows-[auto_1fr_auto] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 relative max-w-6xl mx-auto`}
     >
-      {/* Head Component for Page Title */}
       <Head>
         <title>Beacon ID Generator</title>
         <meta name="description" content="Generate Beacon IDs with ease" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      {/* Notification for Copy Actions */}
       {copiedText && (
         <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow">
           Copied to clipboard!
         </div>
       )}
 
-      {/* Main Content */}
       <main className="flex flex-col gap-8 items-center sm:items-start w-full">
-        {/* Centered Beacon Image */}
         <div className="flex justify-center w-full">
           <Image
             src="/beacon.png"
@@ -67,14 +78,13 @@ const BeaconIDGenerator = () => {
           />
         </div>
 
-        {/* Beacon ID Generator Interface */}
         <div className="bg-white dark:bg-gray-700 shadow-2xl rounded-2xl w-full max-w-full overflow-hidden">
           <div className="flex flex-col sm:flex-row">
-            {/* iBeacon Section */}
             <div className="w-full sm:w-1/2 p-8 border-b sm:border-b-0 sm:border-r dark:border-gray-600">
               <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
                 iBeacon UUID
               </h2>
+              {/* Original UUID */}
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4 flex items-center justify-between flex-wrap">
                 <span className="truncate mr-2 text-gray-700 dark:text-gray-300 flex-grow">
                   {uuid || 'Generate UUID'}
@@ -89,34 +99,32 @@ const BeaconIDGenerator = () => {
                   </button>
                 )}
               </div>
+
+              {/* Trimmed UUID */}
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4 flex items-center justify-between flex-wrap">
+                <span className="truncate mr-2 text-gray-700 dark:text-gray-300 flex-grow">
+                  {uuidTrimmed || 'Generate Trimmed UUID'}
+                </span>
+                {uuidTrimmed && (
+                  <button
+                    onClick={() => copyToClipboard(uuidTrimmed)}
+                    className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    aria-label="Copy Trimmed UUID"
+                  >
+                    <Copy size={20} />
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Eddystone Section */}
             <div className="w-full sm:w-1/2 p-8">
               <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
                 Eddystone UID
               </h2>
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
-                {/* UID */}
+                {/* Namespace (20 Numbers) */}
                 <div className="flex items-center justify-between mb-2 flex-wrap">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">UID</span>
-                  {eddystoneUID && (
-                    <button
-                      onClick={() => copyToClipboard(eddystoneUID)}
-                      className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                      aria-label="Copy UID"
-                    >
-                      <Copy size={16} />
-                    </button>
-                  )}
-                </div>
-                <div className="truncate text-gray-700 dark:text-gray-300">
-                  {eddystoneUID || 'Generate UID'}
-                </div>
-
-                {/* Namespace */}
-                <div className="flex items-center justify-between mt-4 flex-wrap">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Namespace</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Namespace (20 Numbers)</span>
                   {namespaceID && (
                     <button
                       onClick={() => copyToClipboard(namespaceID)}
@@ -130,11 +138,44 @@ const BeaconIDGenerator = () => {
                 <div className="truncate text-gray-700 dark:text-gray-300">
                   {namespaceID || 'Generate Namespace'}
                 </div>
+
+                {/* Instance ID (12 Alphanumeric) */}
+                <div className="flex items-center justify-between mt-4 flex-wrap">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Instance ID (12 Characters)</span>
+                  {instanceID && (
+                    <button
+                      onClick={() => copyToClipboard(instanceID)}
+                      className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                      aria-label="Copy Instance ID"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  )}
+                </div>
+                <div className="truncate text-gray-700 dark:text-gray-300">
+                  {instanceID || 'Generate Instance ID'}
+                </div>
+
+                {/* Full UID */}
+                <div className="flex items-center justify-between mt-4 flex-wrap">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Full UID</span>
+                  {eddystoneUID && (
+                    <button
+                      onClick={() => copyToClipboard(eddystoneUID)}
+                      className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                      aria-label="Copy Full UID"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  )}
+                </div>
+                <div className="truncate text-gray-700 dark:text-gray-300">
+                  {eddystoneUID || 'Generate Full UID'}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Generate Button */}
           <div className="bg-gray-100 dark:bg-gray-800 p-6 text-center">
             <button
               onClick={generateIDs}
@@ -148,7 +189,6 @@ const BeaconIDGenerator = () => {
         </div>
       </main>
 
-      {/* Updated Footer */}
       <footer className="flex items-center justify-center">
         <p className="text-sm text-gray-600 dark:text-gray-300">
           © Naing Min Oo 2024
